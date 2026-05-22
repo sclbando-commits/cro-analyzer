@@ -585,7 +585,7 @@ async function callOpenAI(userText) {
 
 // ─── Ollama Cloud API ────────────────────────
 async function callOllama(userText) {
-  const res = await fetch('https://ollama.com/api/chat', {
+  const res = await fetch('https://api.ollama.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -602,25 +602,51 @@ async function callOllama(userText) {
   });
   if (!res.ok) {
     const d = await res.json().catch(() => ({}));
-    throw new Error(d.error?.message || 'Ollama Cloud APIエラー: ' + res.status);
+    throw new Error(d.error?.message || 'Ollama Cloud APIエラー: ' + res.status + ' - APIキーとエンドポイントを確認してください');
   }
   const data = await res.json();
-  const text = data.message?.content || '';
+  const text = data.choices?.[0]?.message?.content || data.message?.content || '';
   if (!text) throw new Error('Ollama Cloudからの応答が空でした。再度お試しください。');
   return text;
 }
 
 // ─── Display ──────────────────────────────
 function extractSection(text, key) {
-  const m = text.match(new RegExp(`【${key}】([\\s\\S]*?)(?=【|$)`));
-  return m ? m[1].trim() : '';
+  // Try various bracket formats the AI might use
+  const patterns = [
+    new RegExp(`【${key}】([\s\S]*?)(?=【|$)`),
+    new RegExp(`\[${key}\]([\s\S]*?)(?=\[|$)`),
+    new RegExp(`##\s*${key}\s*\n([\s\S]*?)(?=##|$)`),
+    new RegExp(`\*\*${key}\*\*([\s\S]*?)(?=\*\*|$)`),
+  ];
+  for (const pattern of patterns) {
+    const m = text.match(pattern);
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  return '';
 }
 function displayResults(text) {
-  document.getElementById('summaryContent').textContent = extractSection(text,'サマリー') || '（取得できませんでした）';
-  document.getElementById('issuesContent').textContent  = extractSection(text,'問題点')   || '（取得できませんでした）';
-  document.getElementById('recsContent').textContent    = extractSection(text,'改善提案')  || '（取得できませんでした）';
-  document.getElementById('abContent').textContent      = extractSection(text,'ABテスト案')|| '（取得できませんでした）';
-  document.getElementById('actionContent').textContent  = extractSection(text,'次のアクション') || '（取得できませんでした）';
+  const summary  = extractSection(text,'サマリー');
+  const issues   = extractSection(text,'問題点');
+  const recs     = extractSection(text,'改善提案');
+  const ab       = extractSection(text,'ABテスト案');
+  const action   = extractSection(text,'次のアクション');
+
+  // If all sections are empty, show the raw response in summary
+  const allEmpty = !summary && !issues && !recs && !ab && !action;
+
+  document.getElementById('summaryContent').textContent = allEmpty ? text : (summary || '（取得できませんでした）');
+  document.getElementById('issuesContent').textContent  = allEmpty ? '' : (issues  || '（取得できませんでした）');
+  document.getElementById('recsContent').textContent    = allEmpty ? '' : (recs    || '（取得できませんでした）');
+  document.getElementById('abContent').textContent      = allEmpty ? '' : (ab      || '（取得できませんでした）');
+  document.getElementById('actionContent').textContent  = allEmpty ? '' : (action  || '（取得できませんでした）');
+
+  if (allEmpty) {
+    document.getElementById('summaryBlock').querySelector('.result-block-title').textContent = '⚠️ セクション分割できませんでした（生のレスポンス）';
+  } else {
+    document.getElementById('summaryBlock').querySelector('.result-block-title').textContent = '📌 サマリー';
+  }
+
   document.getElementById('resultsBlock').style.display = 'block';
   document.getElementById('resultsBlock').scrollIntoView({ behavior:'smooth', block:'start' });
 }
