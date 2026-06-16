@@ -2,673 +2,818 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRO Analyzer｜Webサイト改善提案ツール</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Conflict Persona — ケンカしたときのタイプ診断</title>
 <style>
-  :root {
-    --bg: #0e0f13;
-    --surface: #16181f;
-    --surface2: #1e2028;
-    --border: #2a2d38;
-    --accent: #5b7fff;
-    --accent2: #a78bfa;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --danger: #f87171;
-    --text: #e8eaf0;
-    --text2: #9096a8;
-    --text3: #5a5f6e;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.7; }
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
-  .header { border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; background: rgba(14,15,19,0.95); backdrop-filter: blur(12px); z-index: 100; }
-  .logo { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  .header-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-  .header-sub { font-size: 11px; color: var(--text3); margin-left: auto; font-family: 'DM Mono', monospace; }
+:root {
+  --purple: #6B5FE4;
+  --purple-light: #8B7FF0;
+  --purple-pale: #EEECfB;
+  --purple-deep: #4A3FC0;
+  --bg: #F0EFFE;
+  --bg2: #E8E5FA;
+  --white: #FFFFFF;
+  --text: #1A1A2E;
+  --text2: #5A5A7A;
+  --text3: #9090AA;
+  --pink: #FFB5C8;
+  --green: #A8D8B0;
+  --amber: #FFD580;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow: 0 2px 16px rgba(107,95,228,0.10);
+}
 
-  .api-setup { max-width: 660px; margin: 50px auto; padding: 0 24px; }
-  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
-  .setup-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .setup-desc { color: var(--text2); margin-bottom: 24px; font-size: 13px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* AI選択タブ */
-  .ai-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-  .ai-tab { flex: 1; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; text-align: center; transition: all 0.2s; }
-  .ai-tab:hover { border-color: var(--accent); color: var(--text); }
-  .ai-tab.active { border-color: var(--accent); background: rgba(91,127,255,0.12); color: var(--text); }
-  .ai-tab .ai-tab-name { font-size: 15px; font-weight: 700; display: block; margin-bottom: 2px; }
-  .ai-tab .ai-tab-sub { font-size: 11px; color: var(--text3); }
-  .ai-tab.active .ai-tab-sub { color: var(--accent); }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
 
-  .provider-panel { display: none; }
-  .provider-panel.active { display: block; }
+/* モバイルフレーム */
+.phone-frame {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
 
-  .setup-steps { background: var(--surface2); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; font-size: 13px; color: var(--text2); }
-  .setup-steps ol { padding-left: 18px; }
-  .setup-steps li { margin-bottom: 6px; }
-  .setup-steps a { color: var(--accent); text-decoration: none; }
-  .setup-steps a:hover { text-decoration: underline; }
+/* スクリーン */
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
 
-  .api-input-row { display: flex; gap: 10px; }
-  .api-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
-  .api-input:focus { border-color: var(--accent); }
-  .api-input::placeholder { color: var(--text3); }
+/* ========== TOP NAV BAR ========== */
+.nav-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px 10px;
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 50;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 15px; font-weight: 700; color: var(--purple);
+}
+.nav-logo svg { width: 20px; height: 20px; }
+.nav-icon-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--white); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--purple);
+}
+.nav-back {
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--purple); padding: 4px 8px; line-height:1;
+}
+.nav-center { font-size: 17px; font-weight: 700; color: var(--text); }
 
-  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; border-radius: 10px; padding: 12px 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: 'Noto Sans JP', sans-serif; transition: opacity 0.2s, transform 0.1s; }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+/* ========== HOME SCREEN ========== */
+.home-content { flex:1; overflow-y:auto; padding-bottom: 90px; }
 
-  .error-msg { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px; padding: 14px 18px; color: var(--danger); font-size: 13px; margin-top: 14px; display: none; }
+.home-hero { padding: 20px 24px 28px; }
+.hero-badge {
+  display: inline-block; background: var(--purple-pale);
+  color: var(--purple); font-size: 11px; font-weight: 700;
+  padding: 5px 14px; border-radius: 100px; margin-bottom: 16px;
+  letter-spacing: .06em;
+}
+.hero-title { font-size: 28px; font-weight: 700; line-height: 1.35; color: var(--text); margin-bottom: 14px; }
+.hero-desc { font-size: 14px; color: var(--text2); line-height: 1.8; margin-bottom: 28px; }
 
-  /* Main App */
-  .app { display: none; max-width: 900px; margin: 0 auto; padding: 32px 24px 80px; }
+.start-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 18px;
+  background: var(--purple); color: #fff;
+  border: none; border-radius: 100px;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: all .2s; letter-spacing: .04em;
+  font-family: inherit;
+}
+.start-btn:hover { background: var(--purple-deep); transform: translateY(-1px); }
+.start-btn-sub { text-align: center; font-size: 12px; color: var(--text3); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; }
 
-  .api-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(91,127,255,0.1); border: 1px solid rgba(91,127,255,0.3); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom: 28px; cursor: pointer; }
-  .api-badge:hover { background: rgba(91,127,255,0.2); }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* キャラプレビュー */
+.char-preview { padding: 0 24px 24px; }
+.char-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.char-grid-bottom { margin-top: 12px; display: flex; justify-content: center; }
+.char-preview-card {
+  background: var(--white); border-radius: var(--radius);
+  padding: 20px 16px; text-align: center;
+  box-shadow: var(--shadow);
+}
+.char-preview-card.purple { background: var(--purple-pale); }
+.char-preview-card.pink { background: #FFF0F5; }
+.char-preview-card.center { width: 50%; }
+.char-preview-svg { width: 80px; height: 80px; margin: 0 auto 8px; }
+.char-preview-name { font-size: 13px; font-weight: 500; color: var(--text2); }
 
-  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; transition: border-color 0.2s; }
-  .card:hover { border-color: #3a3d4a; }
-  .card-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .card-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+/* 特徴カード */
+.features-section { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 12px; }
+.feature-card {
+  background: var(--white); border-radius: var(--radius);
+  padding: 20px; display: flex; align-items: flex-start; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.feature-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 20px;
+}
+.feature-icon.purple { background: var(--purple-pale); }
+.feature-icon.pink { background: #FFF0F5; }
+.feature-icon.amber { background: #FFF9E6; }
+.feature-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.feature-desc { font-size: 13px; color: var(--text2); line-height: 1.7; }
 
-  .upload-zone { border: 1.5px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); }
-  .upload-zone:hover { border-color: var(--accent); background: rgba(91,127,255,0.05); }
-  .upload-zone.has-file { border-color: var(--success); border-style: solid; background: rgba(52,211,153,0.05); }
-  .upload-zone.dragging { border-color: var(--accent); background: rgba(91,127,255,0.1); }
-  .upload-icon { font-size: 24px; margin-bottom: 6px; }
-  .upload-text { font-size: 12px; color: var(--text2); }
-  .upload-filename { font-size: 12px; color: var(--success); margin-top: 4px; font-family: 'DM Mono', monospace; }
-  .img-preview { max-width: 100%; max-height: 100px; border-radius: 8px; margin-top: 8px; display: none; object-fit: cover; }
+/* 信頼バッジ */
+.trust-section { padding: 16px 24px 32px; text-align: center; }
+.trust-count { font-size: 12px; color: var(--text3); margin-bottom: 14px; }
+.trust-logos { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 20px; }
+.trust-logo { font-size: 12px; font-weight: 700; color: var(--text3); opacity: .6; }
 
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media(max-width:600px) { .grid2 { grid-template-columns: 1fr; } }
+/* ========== QUIZ SCREEN ========== */
+.quiz-content { flex:1; padding: 20px 24px 100px; display: flex; flex-direction: column; }
+.prog-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.prog-q-label { font-size: 14px; font-weight: 700; color: var(--purple); }
+.prog-pct-label { font-size: 13px; color: var(--text3); }
+.prog-track {
+  height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; margin-bottom: 40px;
+}
+.prog-fill { height: 100%; background: var(--purple); border-radius: 3px; transition: width .4s cubic-bezier(.4,0,.2,1); }
 
-  input[type=text], textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'Noto Sans JP', sans-serif; font-size: 13px; outline: none; transition: border-color 0.2s; resize: vertical; }
-  input[type=text]:focus, textarea:focus { border-color: var(--accent); }
-  input[type=text]::placeholder, textarea::placeholder { color: var(--text3); }
-  textarea { min-height: 80px; }
+.q-main { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.q-number { font-size: 14px; font-weight: 700; color: var(--purple); margin-bottom: 12px; }
+.q-text { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.45; margin-bottom: 8px; }
+.q-hint { font-size: 13px; color: var(--text3); margin-bottom: 36px; }
 
-  .analyze-wrap { text-align: center; margin: 28px 0; }
-  .btn-analyze { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border: none; border-radius: 14px; padding: 16px 48px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; box-shadow: 0 8px 32px rgba(91,127,255,0.3); }
-  .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(91,127,255,0.4); }
-  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.opt-list { display: flex; flex-direction: column; gap: 14px; }
+.opt-btn {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--white); border: 1.5px solid transparent;
+  border-radius: 16px; padding: 18px 20px;
+  cursor: pointer; text-align: left; transition: all .18s;
+  font-family: inherit;
+  box-shadow: var(--shadow);
+}
+.opt-btn:hover { border-color: var(--purple); background: var(--purple-pale); transform: translateY(-2px); }
+.opt-letter {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.opt-letter.a { background: var(--purple-pale); color: var(--purple); }
+.opt-letter.b { background: #FFE8EE; color: #CC4477; }
+.opt-text { font-size: 16px; color: var(--text); font-weight: 500; line-height: 1.4; }
+.quiz-footer { text-align: center; font-size: 12px; color: var(--text3); padding-top: 24px; }
 
-  .loading { display: none; text-align: center; padding: 40px; }
-  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { color: var(--text2); font-size: 13px; }
+/* ========== RESULT SCREEN ========== */
+.result-content { flex: 1; overflow-y: auto; padding-bottom: 100px; }
 
-  .results { display: none; }
-  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-  .results-title { font-size: 18px; font-weight: 700; }
-  .btn-reset { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 8px; padding: 8px 16px; font-size: 12px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
-  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-copy { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 8px; padding: 6px 12px; font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.2s; }
-  .btn-copy:hover { border-color: var(--success); color: var(--success); }
+.result-hero-bar {
+  background: var(--purple-pale);
+  padding: 16px 24px 28px; text-align: center;
+}
+.result-eyebrow { font-size: 12px; color: var(--purple); font-weight: 700; letter-spacing: .08em; margin-bottom: 6px; }
+.result-type-name { font-size: 36px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.result-type-code { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+.result-char-img {
+  width: 140px; height: 140px; margin: 0 auto;
+  border-radius: 50%; overflow: hidden;
+  background: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px rgba(107,95,228,.18);
+}
 
-  .result-block { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; }
-  .result-block-title { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .result-content { font-size: 14px; line-height: 1.9; color: var(--text); white-space: pre-wrap; }
-  .priority-high { border-left: 3px solid var(--danger); }
-  .priority-mid  { border-left: 3px solid var(--warning); }
-  .priority-low  { border-left: 3px solid var(--success); }
+.result-body { padding: 20px 20px 0; display: flex; flex-direction: column; gap: 14px; }
+
+.result-quote-card {
+  background: var(--white); border-radius: var(--radius); padding: 22px 20px;
+  box-shadow: var(--shadow);
+}
+.result-quote { font-size: 15px; font-weight: 700; color: var(--purple); margin-bottom: 12px; line-height: 1.6; }
+.result-quote-body { font-size: 14px; color: var(--text2); line-height: 1.8; }
+
+.axis-cards { display: flex; flex-direction: column; gap: 10px; }
+.axis-card {
+  background: var(--white); border-radius: var(--radius-sm); padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow);
+}
+.axis-icon {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.axis-right { flex: 1; }
+.axis-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.axis-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .04em; }
+.axis-value { font-size: 15px; font-weight: 700; color: var(--text); }
+.axis-sub { font-size: 12px; color: var(--text3); line-height: 1.5; }
+.axis-bar { height: 4px; background: var(--bg2); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.axis-bar-fill { height: 100%; border-radius: 2px; }
+
+.advice-card {
+  background: var(--purple); border-radius: var(--radius); padding: 22px 20px;
+  color: #fff;
+}
+.advice-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.advice-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.advice-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.7; opacity: .92; }
+.advice-list li::before { content: "✓"; flex-shrink: 0; font-size: 12px; margin-top: 2px; opacity: .8; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail-card {
+  background: var(--white); border-radius: var(--radius-sm); padding: 14px;
+  box-shadow: var(--shadow);
+}
+.detail-card-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text3); margin-bottom: 8px; }
+.detail-card-body { font-size: 13px; color: var(--text); line-height: 1.65; }
+
+.compat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.compat-card {
+  background: var(--white); border-radius: var(--radius-sm); padding: 14px;
+  text-align: center; box-shadow: var(--shadow);
+}
+.compat-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 100px; margin-bottom: 6px; }
+.compat-badge.good { background: #E8F5E9; color: #2E7D32; }
+.compat-badge.care { background: #FFF3E0; color: #E65100; }
+.compat-type-name { font-size: 16px; font-weight: 700; color: var(--purple); }
+
+.result-actions { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.share-btn-main {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 17px;
+  background: var(--purple); color: #fff;
+  border: none; border-radius: 100px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all .2s;
+}
+.share-btn-main:hover { background: var(--purple-deep); }
+.list-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 17px;
+  background: var(--white); color: var(--purple);
+  border: 2px solid var(--purple); border-radius: 100px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all .2s;
+}
+.list-btn:hover { background: var(--purple-pale); }
+.retry-btn {
+  background: none; border: none; color: var(--text3); font-size: 13px; cursor: pointer;
+  font-family: inherit; text-align: center; padding: 8px;
+}
+
+/* ========== LIST SCREEN ========== */
+.list-content { flex: 1; overflow-y: auto; padding: 0 20px 100px; }
+.list-hero { padding: 8px 0 20px; }
+.list-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.list-desc { font-size: 13px; color: var(--text2); line-height: 1.7; }
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.type-card {
+  background: var(--white); border-radius: var(--radius); padding: 20px 16px 16px;
+  text-align: center; cursor: pointer; transition: all .18s;
+  box-shadow: var(--shadow); border: 1.5px solid transparent;
+}
+.type-card:hover { border-color: var(--purple); transform: translateY(-2px); }
+.type-card-avatar {
+  width: 64px; height: 64px; margin: 0 auto 10px;
+  border-radius: 50%; overflow: hidden;
+}
+.type-card-code { font-size: 11px; font-weight: 700; color: var(--purple); letter-spacing: .1em; margin-bottom: 2px; }
+.type-card-name { font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* モーダル */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 200; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--white); border-radius: 24px 24px 0 0;
+  padding: 28px 24px 40px; max-width: 390px; width: 100%;
+  text-align: center; max-height: 80vh; overflow-y: auto;
+}
+.modal-handle { width: 40px; height: 4px; background: var(--bg2); border-radius: 2px; margin: 0 auto 20px; }
+.modal-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px; }
+.modal-code { font-size: 11px; font-weight: 700; color: var(--purple); letter-spacing: .12em; margin-bottom: 4px; }
+.modal-name { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.modal-tagline { font-size: 13px; color: var(--purple); font-weight: 500; margin-bottom: 12px; }
+.modal-desc { font-size: 13px; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
+.modal-axes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; }
+.modal-axis { background: var(--purple-pale); color: var(--purple); font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 100px; }
+.modal-close {
+  background: var(--bg); border: none; border-radius: 100px; padding: 12px 32px;
+  font-size: 14px; font-weight: 700; cursor: pointer; color: var(--text2); font-family: inherit;
+}
+
+/* ========== BOTTOM NAV ========== */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 390px;
+  background: var(--white); border-top: 1px solid #EEEEFF;
+  display: flex; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.bnav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; padding: 10px 0;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+}
+.bnav-icon { font-size: 20px; line-height: 1; }
+.bnav-label { font-size: 10px; font-weight: 700; color: var(--text3); }
+.bnav-btn.active .bnav-label { color: var(--purple); }
+.bnav-center {
+  background: var(--purple); border-radius: 50%;
+  width: 52px; height: 52px; margin-top: -20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; cursor: pointer; border: 3px solid var(--white);
+  flex-shrink: 0;
+}
+
+/* トースト */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #1A1A2E; color: #fff; padding: 12px 24px;
+  border-radius: 100px; font-size: 13px; font-weight: 700;
+  opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+
+/* Share menu */
+.share-menu {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 390px; background: var(--white);
+  border-radius: 24px 24px 0 0; padding: 24px 20px 40px;
+  z-index: 201; display: none;
+}
+.share-menu.open { display: block; }
+.share-menu-title { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 20px; color: var(--text); }
+.share-options { display: flex; flex-direction: column; gap: 10px; }
+.share-opt {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+  background: var(--bg); border-radius: 14px; border: none; cursor: pointer;
+  font-family: inherit; transition: all .15s; width: 100%;
+}
+.share-opt:hover { background: var(--bg2); }
+.share-opt-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.share-opt-text { text-align: left; }
+.share-opt-label { font-size: 14px; font-weight: 700; color: var(--text); }
+.share-opt-sub { font-size: 12px; color: var(--text3); }
+.share-cancel {
+  margin-top: 12px; width: 100%; padding: 14px; background: none;
+  border: none; border-radius: 14px; font-size: 15px; font-weight: 700;
+  color: var(--text3); cursor: pointer; font-family: inherit;
+}
 </style>
 </head>
 <body>
+<div class="phone-frame">
 
-<header class="header">
-  <div class="logo">📊</div>
-  <span class="header-title">CRO Analyzer</span>
-  <span class="header-sub" id="headerSub">AI搭載 Webサイト改善提案ツール</span>
-</header>
-
-<!-- Setup Screen -->
-<div class="api-setup" id="setupScreen">
-  <div class="setup-card">
-    <div class="setup-title">AIを選んでAPIキーを設定</div>
-    <div class="setup-desc">使いたいAIサービスを選んでAPIキーを入力してください。キーはブラウザにのみ保存されます。</div>
-
-    <!-- AI選択タブ -->
-    <div class="ai-tabs">
-      <button class="ai-tab active" onclick="selectProvider('gemini', this)">
-        <span class="ai-tab-name">🔵 Gemini</span>
-        <span class="ai-tab-sub">Google・無料枠あり</span>
-      </button>
-      <button class="ai-tab" onclick="selectProvider('openai', this)">
-        <span class="ai-tab-name">🟢 ChatGPT</span>
-        <span class="ai-tab-sub">OpenAI・有料</span>
-      </button>
-      <button class="ai-tab" onclick="selectProvider('ollama', this)">
-        <span class="ai-tab-name">🟠 Ollama</span>
-        <span class="ai-tab-sub">Cloud・無料枠あり</span>
-      </button>
-    </div>
-
-    <!-- Gemini Panel -->
-    <div class="provider-panel active" id="panel-gemini">
-      <div class="setup-steps">
-        <strong style="color:var(--text);font-size:12px;">Gemini APIキーの取得（無料・5分）</strong>
-        <ol style="margin-top:8px;">
-          <li><a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> をGoogleアカウントで開く</li>
-          <li>「Get API key」→「APIキーを作成」をクリック</li>
-          <li>表示されたキーをコピーして下に貼り付ける</li>
-        </ol>
+  <!-- ======== HOME ======== -->
+  <div id="screen-home" class="screen active">
+    <div class="nav-bar">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Conflict Persona
       </div>
-      <div class="api-input-row">
-        <input type="text" class="api-input" id="geminiKeyInput" placeholder="AIzaSy..." />
-        <button class="btn-primary" onclick="saveKey()">保存して開始</button>
-      </div>
+<div style="width:36px"></div>
     </div>
-
-    <!-- OpenAI Panel -->
-    <div class="provider-panel" id="panel-openai">
-      <div class="setup-steps">
-        <strong style="color:var(--text);font-size:12px;">ChatGPT（OpenAI）APIキーの取得</strong>
-        <ol style="margin-top:8px;">
-          <li><a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a> を開く</li>
-          <li>「Create new secret key」をクリック</li>
-          <li>表示されたキーをコピーして下に貼り付ける</li>
-        </ol>
-        <div style="margin-top:10px;padding:8px 12px;background:rgba(251,191,36,0.1);border-radius:8px;color:var(--warning);font-size:12px;">
-          ⚠️ OpenAI APIは有料です（従量課金）。クレジットカードの登録が必要です。
+    <div class="home-content">
+      <div class="home-hero">
+        <div class="hero-badge">性格タイプ診断 2024</div>
+        <h1 class="hero-title">ケンカしたときの<br>タイプ診断</h1>
+        <p class="hero-desc">あなたはケンカの時、どんな振る舞いをする？<br>16タイプで性格を多角的に分析し、より良いコミュニケーションのヒントを見つけましょう。</p>
+        <button class="start-btn" onclick="startApp()">診断を始める →</button>
+        <div class="start-btn-sub">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          所要時間：約3分
         </div>
       </div>
-      <div class="api-input-row">
-        <input type="text" class="api-input" id="openaiKeyInput" placeholder="sk-..." />
-        <button class="btn-primary" onclick="saveKey()">保存して開始</button>
-      </div>
-    </div>
 
-    <!-- Ollama Cloud Panel -->
-    <div class="provider-panel" id="panel-ollama">
-      <div class="setup-steps">
-        <strong style="color:var(--text);font-size:12px;">Ollama Cloud APIキーの取得（無料枠あり）</strong>
-        <ol style="margin-top:8px;">
-          <li><a href="https://ollama.com/settings" target="_blank">ollama.com/settings</a> にログインして開く</li>
-          <li>「API Keys」→「APIキーを作成」をクリック</li>
-          <li>表示されたキーをコピーして下に貼り付ける</li>
-        </ol>
-        <div style="margin-top:10px;padding:8px 12px;background:rgba(251,191,36,0.1);border-radius:8px;color:var(--warning);font-size:12px;">
-          ⚠️ 画像分析（ヒートマップ・スクショ）は非対応です。GA4データ・URL・テキストのみ分析できます。<br>
-          ⚠️ 無料枠には利用制限があります（5時間・週単位でリセット）。APIキーの入力が必要です。
+      <div class="char-preview">
+        <div class="char-grid">
+          <div class="char-preview-card purple">
+            <div class="char-preview-svg">
+              <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#EEEDFE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#CECBF6"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#AFA9EC" stroke-width="1.5"/><circle cx="49" cy="41" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="61" cy="41" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="49" cy="41" r="1.8" fill="#534AB7"/><circle cx="61" cy="41" r="1.8" fill="#534AB7"/><path d="M50 49 Q55 53 60 49" fill="none" stroke="#534AB7" stroke-width="1.5" stroke-linecap="round"/><line x1="30" y1="40" x2="43" y2="40" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round"/><line x1="67" y1="40" x2="80" y2="40" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round"/><circle cx="26" cy="40" r="5" fill="#CECBF6" stroke="#7F77DD" stroke-width="1"/><circle cx="84" cy="40" r="5" fill="#CECBF6" stroke="#7F77DD" stroke-width="1"/></svg>
+            </div>
+            <div class="char-preview-name">冷静な分析者</div>
+          </div>
+          <div class="char-preview-card pink">
+            <div class="char-preview-svg">
+              <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FCEBEB"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F7C1C1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#F09595" stroke-width="1.5"/><path d="M47 38 Q55 30 63 38 L63 50 Q55 56 47 50Z" fill="#FBEAF0" stroke="#F09595" stroke-width="1"/><ellipse cx="49" cy="43" rx="3" ry="3" fill="#fff" stroke="#E24B4A" stroke-width="1"/><ellipse cx="61" cy="43" rx="3" ry="3" fill="#fff" stroke="#E24B4A" stroke-width="1"/><circle cx="49" cy="43" r="1.8" fill="#A32D2D"/><circle cx="61" cy="43" r="1.8" fill="#A32D2D"/><path d="M50 51 Q55 48 60 51" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"/><path d="M50 34 L53 28 L51 33 L55 26 L53 32 L57 27 L55 33 L59 29 L57 34" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="char-preview-name">情熱の爆発</div>
+          </div>
+        </div>
+        <div class="char-grid-bottom">
+          <div class="char-preview-card center">
+            <div class="char-preview-svg">
+              <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FBEAF0"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F4C0D1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#ED93B1" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#993556"/><circle cx="61" cy="40" r="1.8" fill="#993556"/><path d="M49 49 Q55 55 61 49" fill="none" stroke="#993556" stroke-width="2" stroke-linecap="round"/><path d="M47 33 Q48 29 52 30 Q55 27 58 30 Q62 29 63 33" fill="#ED93B1"/><path d="M47 33 Q55 39 63 33 Q62 29 58 30 Q55 27 52 30 Q48 29 47 33Z" fill="#ED93B1"/></svg>
+            </div>
+            <div class="char-preview-name">心の仲裁者</div>
+          </div>
         </div>
       </div>
-      <div class="api-input-row">
-        <input type="text" class="api-input" id="ollamaKeyInput" placeholder="ollama_..." />
-        <button class="btn-primary" onclick="saveKey()">保存して開始</button>
+
+      <div class="features-section">
+        <div class="feature-card">
+          <div class="feature-icon purple">🧠</div>
+          <div>
+            <div class="feature-title">心理学に基づく分析</div>
+            <div class="feature-desc">最新のコミュニケーション心理学に基づき、あなたの深層心理を紐解きます。</div>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon pink">👥</div>
+          <div>
+            <div class="feature-title">相性チェック</div>
+            <div class="feature-desc">パートナーや友人との「ケンカの相性」や、仲直りの秘訣がわかります。</div>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon amber">✨</div>
+          <div>
+            <div class="feature-title">具体的な改善策</div>
+            <div class="feature-desc">ただの診断で終わらない、明日から使える対人関係のアドバイスを提供。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="trust-section">
+        <div class="trust-count">診断実績 100,000人突破</div>
+        <div class="trust-logos">
+          <span class="trust-logo">◎ TrustMe</span>
+          <span class="trust-logo">◎ JapanPsych</span>
+          <span class="trust-logo">✦ SocialLab</span>
+        </div>
       </div>
     </div>
 
-    <div class="error-msg" id="setupError"></div>
+    <div class="bottom-nav">
+      <button class="bnav-btn active" onclick="showScreen('home')">
+        <span class="bnav-icon">🏠</span>
+        <span class="bnav-label" style="color:var(--purple)">Home</span>
+      </button>
+      <button class="bnav-btn" onclick="startApp()">
+        <span class="bnav-icon">🎯</span>
+        <span class="bnav-label">Test</span>
+      </button>
+      <button class="bnav-btn" onclick="showScreen('list')">
+        <span class="bnav-icon">⊞</span>
+        <span class="bnav-label">Types</span>
+      </button>
+    </div>
   </div>
+
+  <!-- ======== QUIZ ======== -->
+  <div id="screen-quiz" class="screen">
+    <div class="nav-bar">
+      <button class="nav-back" onclick="showScreen('home')" aria-label="戻る">←</button>
+      <span class="nav-center">診断中</span>
+<div style="width:36px"></div>
+    </div>
+    <div class="quiz-content" id="quiz-area"></div>
+  </div>
+
+  <!-- ======== RESULT ======== -->
+  <div id="screen-result" class="screen">
+    <div class="nav-bar">
+      <button class="nav-back" onclick="showScreen('home')" aria-label="戻る">←</button>
+      <span class="nav-center">Conflict Persona</span>
+<div style="width:36px"></div>
+    </div>
+    <div class="result-content" id="result-area"></div>
+    <div class="bottom-nav">
+      <button class="bnav-btn" onclick="showScreen('home')"><span class="bnav-icon">🏠</span><span class="bnav-label">Home</span></button>
+      <button class="bnav-btn active"><span class="bnav-icon">🎯</span><span class="bnav-label" style="color:var(--purple)">Test</span></button>
+      <button class="bnav-btn" onclick="showScreen('list')"><span class="bnav-icon">⊞</span><span class="bnav-label">Types</span></button>
+    </div>
+  </div>
+
+  <!-- ======== LIST ======== -->
+  <div id="screen-list" class="screen">
+    <div class="nav-bar">
+      <button class="nav-back" onclick="showScreen('home')" aria-label="戻る">←</button>
+      <span class="nav-center">タイプ一覧</span>
+<div style="width:36px"></div>
+    </div>
+    <div class="list-content">
+      <div class="list-hero">
+        <div class="list-title">16種類の葛藤スタイル</div>
+        <div class="list-desc">あなたや周りの人が持つ、対人葛藤への向き合い方を確認しましょう。</div>
+      </div>
+      <div class="type-grid" id="type-grid-area"></div>
+    </div>
+    <div class="bottom-nav">
+      <button class="bnav-btn" onclick="showScreen('home')"><span class="bnav-icon">🏠</span><span class="bnav-label">Home</span></button>
+      <button class="bnav-btn"><span class="bnav-icon">🎯</span><span class="bnav-label">Test</span></button>
+      <button class="bnav-btn active"><span class="bnav-icon">⊞</span><span class="bnav-label" style="color:var(--purple)">Types</span></button>
+    </div>
+  </div>
+
 </div>
 
-<!-- Main App -->
-<div class="app" id="mainApp">
-  <div class="api-badge" onclick="changeApiKey()">
-    <div class="dot"></div>
-    <span id="apiKeyLabel"></span>
-    <span style="color:var(--text3)">· 変更</span>
-  </div>
-
-  <div class="section-label">データをアップロード</div>
-
-  <div class="card">
-    <div class="card-title">
-      <div class="card-icon" style="background:rgba(91,127,255,0.15)">📈</div>GA4データ（CSV）
-    </div>
-    <div class="upload-zone" id="csvZone" onclick="document.getElementById('csvFile').click()"
-         ondragover="handleDragOver(event,'csvZone')" ondragleave="handleDragLeave(event,'csvZone')" ondrop="handleDrop(event,'csvZone','csvFile')">
-      <div class="upload-icon">📂</div>
-      <div class="upload-text">クリックまたはドラッグ＆ドロップ</div>
-      <div class="upload-filename" id="csvName"></div>
-    </div>
-    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(this)">
-  </div>
-
-  <div class="grid2">
-    <div class="card">
-      <div class="card-title"><div class="card-icon" style="background:rgba(251,191,36,0.15)">🔥</div>ヒートマップ画像</div>
-      <div class="upload-zone" id="heatZone" onclick="document.getElementById('heatFile').click()"
-           ondragover="handleDragOver(event,'heatZone')" ondragleave="handleDragLeave(event,'heatZone')" ondrop="handleDrop(event,'heatZone','heatFile')">
-        <div class="upload-icon">🖼️</div>
-        <div class="upload-text">PNG / JPG</div>
-        <img class="img-preview" id="heatPreview">
-        <div class="upload-filename" id="heatName"></div>
-      </div>
-      <input type="file" id="heatFile" accept="image/*" style="display:none" onchange="handleImage(this,'heat')">
-    </div>
-    <div class="card">
-      <div class="card-title"><div class="card-icon" style="background:rgba(167,139,250,0.15)">🖥️</div>スクリーンショット</div>
-      <div class="upload-zone" id="ssZone" onclick="document.getElementById('ssFile').click()"
-           ondragover="handleDragOver(event,'ssZone')" ondragleave="handleDragLeave(event,'ssZone')" ondrop="handleDrop(event,'ssZone','ssFile')">
-        <div class="upload-icon">📸</div>
-        <div class="upload-text">PNG / JPG</div>
-        <img class="img-preview" id="ssPreview">
-        <div class="upload-filename" id="ssName"></div>
-      </div>
-      <input type="file" id="ssFile" accept="image/*" style="display:none" onchange="handleImage(this,'ss')">
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><div class="card-icon" style="background:rgba(52,211,153,0.15)">🔗</div>ページURL・HTML・LP文章</div>
-    <input type="text" id="pageUrl" placeholder="https://example.com/lp" style="margin-bottom:10px;">
-    <textarea id="pageText" placeholder="LP本文、HTMLソース、またはページのテキストをここに貼り付けてください" style="min-height:100px;"></textarea>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><div class="card-icon" style="background:rgba(248,113,113,0.15)">🎯</div>気になること・分析の目的（任意）</div>
-    <textarea id="goalText" placeholder="例：直帰率が高い、CTAがクリックされていない、ファーストビューが弱い気がする…" style="min-height:70px;"></textarea>
-  </div>
-
-  <div class="error-msg" id="analyzeError"></div>
-
-  <div class="analyze-wrap">
-    <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">✦ AI分析を実行する</button>
-  </div>
-
-  <div class="loading" id="loadingBlock">
-    <div class="spinner"></div>
-    <div class="loading-text" id="loadingText">AIが分析中です…しばらくお待ちください</div>
-  </div>
-
-  <div class="results" id="resultsBlock">
-    <div class="results-header">
-      <div class="results-title">📋 分析結果</div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-copy" onclick="copyResults()">コピー</button>
-        <button class="btn-reset" onclick="resetForm()">新しい分析</button>
-      </div>
-    </div>
-    <div class="result-block" id="summaryBlock">
-      <div class="result-block-title">📌 サマリー</div>
-      <div class="result-content" id="summaryContent"></div>
-    </div>
-    <div class="result-block priority-high">
-      <div class="result-block-title">🔴 検出された問題点</div>
-      <div class="result-content" id="issuesContent"></div>
-    </div>
-    <div class="result-block">
-      <div class="result-block-title">💡 改善提案</div>
-      <div class="result-content" id="recsContent"></div>
-    </div>
-    <div class="result-block priority-mid">
-      <div class="result-block-title">🧪 ABテスト案</div>
-      <div class="result-content" id="abContent"></div>
-    </div>
-    <div class="result-block priority-low">
-      <div class="result-block-title">✅ 次のアクション</div>
-      <div class="result-content" id="actionContent"></div>
-    </div>
-  </div>
+<!-- Modal -->
+<div class="modal-overlay" id="type-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-sheet" id="modal-content"></div>
 </div>
+
+<!-- Share menu -->
+<div class="share-menu" id="share-menu">
+  <div class="modal-handle"></div>
+  <div class="share-menu-title">結果をシェアする</div>
+  <div class="share-options">
+    <button class="share-opt" onclick="shareTwitter()">
+      <div class="share-opt-icon" style="background:#E8F4FF">𝕏</div>
+      <div class="share-opt-text">
+        <div class="share-opt-label">X（Twitter）でシェア</div>
+        <div class="share-opt-sub">診断結果をポストする</div>
+      </div>
+    </button>
+    <button class="share-opt" onclick="copyResult()">
+      <div class="share-opt-icon" style="background:#F0F0FF">📋</div>
+      <div class="share-opt-text">
+        <div class="share-opt-label">テキストをコピー</div>
+        <div class="share-opt-sub">クリップボードにコピー</div>
+      </div>
+    </button>
+  </div>
+  <button class="share-cancel" onclick="closeShareMenu()">キャンセル</button>
+</div>
+
+<div class="toast" id="toast">コピーしました！</div>
 
 <script>
-let currentProvider = 'gemini';
-let apiKey = '';
-let csvData = '';
-let heatBase64 = '', ssBase64 = '', heatMime = '', ssMime = '';
-let allResultText = '';
+const TYPES = {
+  "向き合う×論理×自分×即行動":{name:"論理派",code:"FLI-A",tagline:"筋道を立てて冷静に解決する",desc:"感情を一旦置いて、事実と論拠を丁寧に整理します。相手に伝わる言葉を選び、建設的な結論を導くのが得意。「なぜそうなったか」の原因分析から始めます。",strength:"冷静さと論理展開力。感情的にならずに本質を突ける。",weakness:"相手が感情を求めているときに冷たく見えることも。",tip:["「あなたの気持ちもわかる、その上で…」と前置きすると伝わりやすい。","感情的な言葉も否定せず、まず受け取ってみましょう。"],match:"共感派・調整役",care:"爆発型",axes:["向き合う","論理","自分の主張","即行動"],axisColors:["#7F77DD","#378ADD","#D85A30","#BA7517"],bg:"#E6F1FB",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#E6F1FB"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#B5D4F4"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#85B7EB" stroke-width="1.5"/><circle cx="55" cy="42" r="15" fill="#f0f6ff"/><rect x="46" y="36" width="18" height="3" rx="1.5" fill="#378ADD"/><rect x="46" y="41" width="18" height="3" rx="1.5" fill="#378ADD"/><rect x="46" y="46" width="12" height="3" rx="1.5" fill="#85B7EB"/><circle cx="67" cy="38" r="7" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/><text x="67" y="41" text-anchor="middle" font-size="8" fill="#633806" font-weight="500">!</text></svg>`},
+  "向き合う×感情×自分×即行動":{name:"本音解放型",code:"FEI-A",tagline:"ケンカを本音を出すチャンスに変える",desc:"普段は言えないことも、ケンカの場では正直に伝えます。感情をオープンにすることで関係が深まると感じる。言葉が多く、その分エネルギッシュ。",strength:"本音を言える度胸と正直さ。隠し事がなく信頼されやすい。",weakness:"相手が受け取れる量を超えることがある。後で言いすぎたと反省も。",tip:["「今日は本音を話したい」と宣言してから始めると場が整いやすい。","相手の話を聞く間も大切に。"],match:"反省家・観察者",care:"沈黙者",axes:["向き合う","感情","自分の主張","即行動"],axisColors:["#7F77DD","#D4537E","#D85A30","#BA7517"],bg:"#FAECE7",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FAECE7"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F5C4B3"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#F0997B" stroke-width="1.5"/><path d="M42 38 Q55 32 68 38 Q65 52 55 55 Q45 52 42 38Z" fill="#FBEAF0" stroke="#F0997B" stroke-width="1"/><ellipse cx="49" cy="43" rx="3" ry="3.5" fill="#fff" stroke="#F0997B" stroke-width="1"/><ellipse cx="61" cy="43" rx="3" ry="3.5" fill="#fff" stroke="#F0997B" stroke-width="1"/><circle cx="49" cy="43" r="1.5" fill="#993C1D"/><circle cx="61" cy="43" r="1.5" fill="#993C1D"/><path d="M50 50 Q55 54 60 50" fill="none" stroke="#993C1D" stroke-width="1.5" stroke-linecap="round"/><path d="M38 30 Q34 24 38 20" fill="none" stroke="#F0997B" stroke-width="1.5"/><path d="M72 30 Q76 24 72 20" fill="none" stroke="#F0997B" stroke-width="1.5"/></svg>`},
+  "向き合う×感情×自分×時間を置く":{name:"爆発型",code:"FEI-W",tagline:"限界まで我慢してから一気に解放",desc:"普段は穏やかでも、限界を超えたときの爆発力は大きい。溜め込んだ感情が一度に出るため、相手は突然のことに驚くことも。",strength:"普段の忍耐力は高い。爆発後はすっきりして切り替えが早いことも。",weakness:"タイミングが読めず相手が戸惑う。積み重ねた不満が一気に出る。",tip:["小さな不満をその都度「少し気になった」と伝える練習をしてみて。","溜め込む前に書き出してみるのも効果的。"],match:"沈黙者・回避者",care:"即解決者",axes:["向き合う","感情","自分の主張","時間を置く"],axisColors:["#7F77DD","#D4537E","#D85A30","#639922"],bg:"#FCEBEB",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FCEBEB"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F7C1C1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#F09595" stroke-width="1.5"/><path d="M47 38 Q55 30 63 38 L63 50 Q55 56 47 50Z" fill="#FBEAF0" stroke="#F09595" stroke-width="1"/><ellipse cx="49" cy="43" rx="3" ry="3" fill="#fff" stroke="#E24B4A" stroke-width="1"/><ellipse cx="61" cy="43" rx="3" ry="3" fill="#fff" stroke="#E24B4A" stroke-width="1"/><circle cx="49" cy="43" r="1.8" fill="#A32D2D"/><circle cx="61" cy="43" r="1.8" fill="#A32D2D"/><path d="M50 51 Q55 48 60 51" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round"/><path d="M50 34 L53 28 L51 33 L55 26 L53 32 L57 27 L55 33 L59 29 L57 34" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+  "向き合う×論理×自分×時間を置く":{name:"分析官",code:"FLI-W",tagline:"原因と経緯を徹底的に整理する",desc:"ケンカの後、何がどうして起きたのかを頭の中で丁寧に整理します。メモを取ることもある。じっくり考えてから自分の意見をまとめる。",strength:"深く考える力。整理された意見は説得力がある。",weakness:"返答が遅くなりがちで相手を不安にさせることも。",tip:["「少し整理してから話したい」と一言伝えるだけで関係が楽になる。","タイマーをセットして「30分後に話そう」と提案しよう。"],match:"即解決者・仲裁者",care:"爆発型",axes:["向き合う","論理","自分の主張","時間を置く"],axisColors:["#7F77DD","#378ADD","#D85A30","#639922"],bg:"#EAF3DE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#EAF3DE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#C0DD97"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#97C459" stroke-width="1.5"/><circle cx="49" cy="41" r="4" fill="#EAF3DE" stroke="#639922" stroke-width="1"/><circle cx="61" cy="41" r="4" fill="#EAF3DE" stroke="#639922" stroke-width="1"/><circle cx="49" cy="41" r="2" fill="#3B6D11"/><circle cx="61" cy="41" r="2" fill="#3B6D11"/><path d="M50 50 Q55 53 60 50" fill="none" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round"/><rect x="43" y="26" width="24" height="10" rx="3" fill="#EAF3DE" stroke="#639922" stroke-width="1"/><line x1="47" y1="29" x2="63" y2="29" stroke="#639922" stroke-width="1"/><line x1="47" y1="32" x2="59" y2="32" stroke="#97C459" stroke-width="1"/><line x1="55" y1="36" x2="55" y2="38" stroke="#639922" stroke-width="1"/></svg>`},
+  "向き合う×論理×関係×即行動":{name:"仲裁者",code:"FLR-A",tagline:"双方の意見を聞いて着地点を探す",desc:"どちらかの味方ではなく、全体を見て最善の着地点を探します。論理的に整理しながらも、関係性が壊れないよう細心の注意を払う。",strength:"公平な視点と場の調整力。誰もが納得できる解決を目指す。",weakness:"自分の気持ちや意見を後回しにしがちで、消耗することも。",tip:["「自分はどう思うか」も大切に。あなたの意見も価値がある。","調停に疲れたら「今日は無理」と言っていい。"],match:"論理派・即解決者",care:"爆発型",axes:["向き合う","論理","関係性","即行動"],axisColors:["#7F77DD","#378ADD","#1D9E75","#BA7517"],bg:"#EEEDFE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#EEEDFE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#CECBF6"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#AFA9EC" stroke-width="1.5"/><circle cx="49" cy="41" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="61" cy="41" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="49" cy="41" r="1.8" fill="#534AB7"/><circle cx="61" cy="41" r="1.8" fill="#534AB7"/><path d="M50 49 Q55 53 60 49" fill="none" stroke="#534AB7" stroke-width="1.5" stroke-linecap="round"/><line x1="30" y1="40" x2="43" y2="40" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round"/><line x1="67" y1="40" x2="80" y2="40" stroke="#AFA9EC" stroke-width="1.5" stroke-linecap="round"/><circle cx="26" cy="40" r="5" fill="#CECBF6" stroke="#7F77DD" stroke-width="1"/><circle cx="84" cy="40" r="5" fill="#CECBF6" stroke="#7F77DD" stroke-width="1"/></svg>`},
+  "向き合う×感情×関係×即行動":{name:"調整役",code:"FER-A",tagline:"感情を大切に関係をすぐ修復する",desc:"相手の気持ちを最優先に考え、傷が広がる前にすぐ動きます。謝罪や感謝の言葉が自然に出る。関係の温度を素早く戻すのが得意。",strength:"素早い修復力と温かさ。場の空気を和やかにする天才。",weakness:"自分が悪くなくても謝ってしまうことがある。",tip:["「私はこう感じた」と伝えることも修復の一歩。","自分の気持ちも大事に。全部を飲み込まないで。"],match:"爆発型・本音解放型",care:"正義漢",axes:["向き合う","感情","関係性","即行動"],axisColors:["#7F77DD","#D4537E","#1D9E75","#BA7517"],bg:"#FBEAF0",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FBEAF0"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F4C0D1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#ED93B1" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#993556"/><circle cx="61" cy="40" r="1.8" fill="#993556"/><path d="M49 49 Q55 55 61 49" fill="none" stroke="#993556" stroke-width="2" stroke-linecap="round"/><path d="M47 33 Q48 29 52 30 Q55 27 58 30 Q62 29 63 33" fill="#ED93B1" stroke="none"/><path d="M47 33 Q55 39 63 33 Q62 29 58 30 Q55 27 52 30 Q48 29 47 33Z" fill="#ED93B1"/></svg>`},
+  "向き合う×論理×関係×時間を置く":{name:"観察者",code:"FLR-W",tagline:"状況を見極めてから的確に動く",desc:"ケンカ中は周囲の状況、相手の表情、言葉の裏にある意図を注意深く観察します。急がず慎重に、最もダメージが少ない方法を選んで行動する。",strength:"洞察力と慎重さ。ミスが少なく信頼される。",weakness:"観察に時間をかけすぎて、タイミングを逃すことも。",tip:["「気づいたこと」を相手に伝えると、理解者として感謝される。","観察結果を言語化する練習をしよう。"],match:"爆発型・本音解放型",care:"即解決者",axes:["向き合う","論理","関係性","時間を置く"],axisColors:["#7F77DD","#378ADD","#1D9E75","#639922"],bg:"#E1F5EE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#E1F5EE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#9FE1CB"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#5DCAA5" stroke-width="1.5"/><ellipse cx="49" cy="40" rx="5" ry="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/><ellipse cx="61" cy="40" rx="5" ry="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/><circle cx="49" cy="40" r="2" fill="#0F6E56"/><circle cx="61" cy="40" r="2" fill="#0F6E56"/><path d="M50 50 Q55 53 60 50" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round"/><path d="M72 28 Q80 35 72 42" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round"/></svg>`},
+  "向き合う×感情×関係×時間を置く":{name:"反省家",code:"FER-W",tagline:"まず自分の非を振り返る誠実タイプ",desc:"ケンカの後、まず「自分にも悪い部分があったかも」と内省します。相手を責める前に自分を見つめ直す。その誠実さが、長期的な信頼を生む。",strength:"自己反省力と誠実さ。相手から信頼されやすい。",weakness:"自分を責めすぎて疲弊することがある。",tip:["相手も同じくらい傷ついているかも、というバランス感覚を大切に。","「自分が悪い」と「相手にも伝えたいことがある」は共存できる。"],match:"調整役・仲裁者",care:"正義漢",axes:["向き合う","感情","関係性","時間を置く"],axisColors:["#7F77DD","#D4537E","#1D9E75","#639922"],bg:"#FAEEDA",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FAEEDA"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#FAC775"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#EF9F27" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#854F0B"/><circle cx="61" cy="40" r="1.8" fill="#854F0B"/><path d="M50 51 Q55 49 60 51" fill="none" stroke="#BA7517" stroke-width="1.5" stroke-linecap="round"/><path d="M52 29 Q55 24 58 29" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/><circle cx="55" cy="29" r="2" fill="#EF9F27"/></svg>`},
+  "避ける×論理×自分×即行動":{name:"正義漢",code:"ALI-A",tagline:"納得できないことには断固として譲らない",desc:"自分の信念と論理に基づいて主張を曲げません。間違っていることには即座に反論し、筋を通すことを最優先にします。",strength:"信念の強さと一貫性。ブレない姿勢が尊敬を生む。",weakness:"頑固に見られることがある。感情面での融通が効きにくい。",tip:["「正しいこと」と「相手が受け入れられること」は別物と知ると楽になる。","一度相手の立場に立って考えてみよう。"],match:"論理派・分析官",care:"共感派",axes:["避ける","論理","自分の主張","即行動"],axisColors:["#888780","#378ADD","#D85A30","#BA7517"],bg:"#FCEBEB",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FCEBEB"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F7C1C1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#F09595" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/><circle cx="49" cy="40" r="2" fill="#791F1F"/><circle cx="61" cy="40" r="2" fill="#791F1F"/><path d="M50 50 Q55 47 60 50" fill="none" stroke="#791F1F" stroke-width="1.5" stroke-linecap="round"/><polygon points="55,18 58,26 66,26 60,31 62,39 55,34 48,39 50,31 44,26 52,26" fill="#EF9F27" stroke="#BA7517" stroke-width="0.5"/></svg>`},
+  "避ける×感情×自分×即行動":{name:"防衛者",code:"AEI-A",tagline:"自分と大切な人を守る盾になる",desc:"自分や大切な人が傷つくと感じると、即座に感情的な防御に入ります。守るべきものを守るための言葉が反射的に出てくる。",strength:"保護本能と反応速度。いざというときの頼もしさ。",weakness:"過剰防衛になることがある。攻撃的に見えることも。",tip:["「守る」と「攻撃する」は違う。深呼吸してから言葉を選ぼう。","感情が高ぶったら一度席を外して落ち着こう。"],match:"反省家・観察者",care:"本音解放型",axes:["避ける","感情","自分の主張","即行動"],axisColors:["#888780","#D4537E","#D85A30","#BA7517"],bg:"#E6F1FB",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#E6F1FB"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#B5D4F4"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#85B7EB" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#0C447C"/><circle cx="61" cy="40" r="1.8" fill="#0C447C"/><path d="M50 50 Q55 47 60 50" fill="none" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/><path d="M45 26 Q55 20 65 26 L65 36 Q55 43 45 36Z" fill="none" stroke="#378ADD" stroke-width="1.5"/><line x1="55" y1="24" x2="55" y2="43" stroke="#85B7EB" stroke-width="1" stroke-dasharray="2,1.5"/></svg>`},
+  "避ける×感情×自分×時間を置く":{name:"記憶保持者",code:"AEI-W",tagline:"感情と記憶が深く結びついている",desc:"ケンカで言われた言葉、その日の空気感まで鮮明に覚えています。感情と記憶が連動しているため、思い出すたびに感情がよみがえる。",strength:"細部への注意力と感情の深さ。思いやりが深い。",weakness:"過去のことを引きずりやすく、許すのに時間がかかる。",tip:["記憶を「宝」として大切にしつつ、少しずつ手放す練習も。","ジャーナリングで感情を書き出すと整理しやすい。"],match:"切替上手・反省家",care:"即解決者",axes:["避ける","感情","自分の主張","時間を置く"],axisColors:["#888780","#D4537E","#D85A30","#639922"],bg:"#FBEAF0",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FBEAF0"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F4C0D1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#ED93B1" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#72243E"/><circle cx="61" cy="40" r="1.8" fill="#72243E"/><path d="M51 49 Q55 46 59 49" fill="none" stroke="#993556" stroke-width="1.5" stroke-linecap="round"/><path d="M72 26 Q80 30 80 38 Q80 46 72 48" fill="none" stroke="#ED93B1" stroke-width="1.5" stroke-linecap="round"/><circle cx="76" cy="32" r="2.5" fill="#F4C0D1" stroke="#D4537E" stroke-width="1"/><circle cx="79" cy="42" r="2" fill="#F4C0D1" stroke="#D4537E" stroke-width="1"/></svg>`},
+  "避ける×論理×自分×時間を置く":{name:"沈黙者",code:"ALI-W",tagline:"距離を置いて静かに考え抜く",desc:"ケンカになると言葉が少なくなり、内側で考えを整理します。沈黙は無関心ではなく、思考中のサイン。時間をかけて論理的に整理された言葉を選びます。",strength:"深い思考力と言葉の重さ。発言は少ないが的を射ている。",weakness:"相手が「無視された」と感じることがある。",tip:["「少し考えたい、後で話そう」と一言伝えるだけで全然違う。","返答に時間がかかる旨を事前に伝える習慣をつけよう。"],match:"本音解放型・爆発型",care:"調整役",axes:["避ける","論理","自分の主張","時間を置く"],axisColors:["#888780","#378ADD","#D85A30","#639922"],bg:"#EEEDFE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#EEEDFE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#CECBF6"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#AFA9EC" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#26215C"/><circle cx="61" cy="40" r="1.8" fill="#26215C"/><line x1="50" y1="50" x2="60" y2="50" stroke="#534AB7" stroke-width="1.5" stroke-linecap="round"/><circle cx="55" cy="20" r="6" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="1"/><circle cx="55" cy="20" r="2" fill="#7F77DD"/><line x1="55" y1="14" x2="55" y2="30" stroke="#CECBF6" stroke-width="0.5" stroke-dasharray="1,1"/></svg>`},
+  "避ける×論理×関係×即行動":{name:"即解決者",code:"ALR-A",tagline:"モヤモヤを残さずすぐ終わらせたい",desc:"ケンカを長引かせるのが嫌いで、論理的に素早く解決しようとします。「早く終わらせて前に進もう」という気持ちが強い。",strength:"決断力と前進力。ケンカを引きずらない。",weakness:"相手がまだ感情的なときに焦らせてしまうことも。",tip:["「解決」の前に「聞く」を意識するだけで、相手の安心感が変わる。","急ぎすぎず、相手のペースも尊重しよう。"],match:"沈黙者・記憶保持者",care:"共感派",axes:["避ける","論理","関係性","即行動"],axisColors:["#888780","#378ADD","#1D9E75","#BA7517"],bg:"#FAEEDA",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FAEEDA"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#FAC775"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#EF9F27" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FAEEDA" stroke="#BA7517" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#633806"/><circle cx="61" cy="40" r="1.8" fill="#633806"/><path d="M50 49 Q55 53 60 49" fill="none" stroke="#854F0B" stroke-width="1.5" stroke-linecap="round"/><polygon points="55,22 60,32 72,32 63,39 66,51 55,44 44,51 47,39 38,32 50,32" fill="#EF9F27" stroke="none"/></svg>`},
+  "避ける×感情×関係×即行動":{name:"切替上手",code:"AER-A",tagline:"感情を切り替えて関係をすぐ回復",desc:"ケンカの後の立ち直りが早く、引きずらない。「終わったことは終わり」と感情を切り替えて、関係を元に戻すことを優先します。",strength:"回復力と前向きさ。ケンカ後の雰囲気づくりが上手。",weakness:"相手がまだ引きずっているときに温度差が生まれることも。",tip:["相手のペースに合わせた「待つ」余裕が、さらに関係を深める。","切り替えが早い自分を否定しないで。それはあなたの強み。"],match:"記憶保持者・爆発型",care:"沈黙者",axes:["避ける","感情","関係性","即行動"],axisColors:["#888780","#D4537E","#1D9E75","#BA7517"],bg:"#EAF3DE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#EAF3DE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#C0DD97"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#97C459" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#EAF3DE" stroke="#639922" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#EAF3DE" stroke="#639922" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#27500A"/><circle cx="61" cy="40" r="1.8" fill="#27500A"/><path d="M49 49 Q55 55 61 49" fill="none" stroke="#3B6D11" stroke-width="2" stroke-linecap="round"/><path d="M65 24 Q74 28 74 36 Q74 44 65 48" fill="none" stroke="#97C459" stroke-width="2" stroke-linecap="round"/><path d="M70 26 L65 24 L67 29" fill="none" stroke="#639922" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+  "避ける×論理×関係×時間を置く":{name:"回避者",code:"ALR-W",tagline:"争いを避けてそっと関係を戻す",desc:"ケンカそのものを避けようとします。論理的に「この争いは無駄だ」と判断し、静かに距離を置きながら、自然に関係が戻るのを待ちます。",strength:"冷静さと穏やかさ。無用な摩擦を生まない。",weakness:"問題が解決されないまま蓄積することがある。",tip:["「話し合い」を「戦い」ではなく「理解し合う場」と捉え直してみて。","小さな問題は早めに伝えると大きくならない。"],match:"正義漢・本音解放型",care:"爆発型",axes:["避ける","論理","関係性","時間を置く"],axisColors:["#888780","#378ADD","#1D9E75","#639922"],bg:"#E1F5EE",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#E1F5EE"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#9FE1CB"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#5DCAA5" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#085041"/><circle cx="61" cy="40" r="1.8" fill="#085041"/><path d="M50 50 Q55 53 60 50" fill="none" stroke="#085041" stroke-width="1.5" stroke-linecap="round"/><path d="M36 30 Q30 38 36 46" fill="none" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round"/><path d="M74 30 Q80 38 74 46" fill="none" stroke="#5DCAA5" stroke-width="1.5" stroke-linecap="round"/></svg>`},
+  "避ける×感情×関係×時間を置く":{name:"共感派",code:"AER-W",tagline:"気持ちをわかってほしいと思うタイプ",desc:"自分の感情が理解されることを最も大切にします。相手の気持ちにも寄り添おうとしますが、まず「わかってほしい」という気持ちが先に来ます。",strength:"感情の細やかさと共感力の高さ。人の気持ちに敏感。",weakness:"「わかってもらえない」と感じると深く傷つく。",tip:["「わかってもらいたい」気持ちを言葉で伝えると、相手も応えやすくなる。","相手に同じことを求めすぎないようにしよう。"],match:"調整役・切替上手",care:"正義漢",axes:["避ける","感情","関係性","時間を置く"],axisColors:["#888780","#D4537E","#1D9E75","#639922"],bg:"#FBEAF0",
+    svg:`<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="55" fill="#FBEAF0"/><ellipse cx="55" cy="75" rx="26" ry="18" fill="#F4C0D1"/><circle cx="55" cy="42" r="20" fill="#fff" stroke="#ED93B1" stroke-width="1.5"/><circle cx="49" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="61" cy="40" r="3.5" fill="#FBEAF0" stroke="#D4537E" stroke-width="1"/><circle cx="49" cy="40" r="1.8" fill="#4B1528"/><circle cx="61" cy="40" r="1.8" fill="#4B1528"/><path d="M49 49 Q55 55 61 49" fill="none" stroke="#993556" stroke-width="2" stroke-linecap="round"/><path d="M48 30 Q51 25 55 27 Q59 25 62 30 Q59 36 55 34 Q51 36 48 30Z" fill="#ED93B1"/><path d="M50 29 L47 22 M55 27 L55 20 M60 29 L63 22" stroke="#F4C0D1" stroke-width="1" stroke-linecap="round"/></svg>`}
+};
 
-// ─── Provider selection ───────────────────
-function selectProvider(provider, el) {
-  currentProvider = provider;
-  document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.provider-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + provider).classList.add('active');
+const QUESTIONS=[
+  {q:"友人に嫌なことを\n言われたときは？",a:["その場で伝えたい","一旦様子を見る"],axis:0,map:[0,1]},
+  {q:"ケンカになると\n重視するのは？",a:["気持ちをわかってほしい","事実を整理したい"],axis:1,map:[0,1]},
+  {q:"相手に不満があるときは？",a:["はっきり伝える方だ","飲み込むことが多い"],axis:2,map:[0,1]},
+  {q:"ケンカした直後は？",a:["すぐ解決したい","冷静になる時間がほしい"],axis:3,map:[0,1]},
+  {q:"話し合いでは？",a:["気持ちを伝えることが大切","筋が通っていることが大切"],axis:1,map:[0,1]},
+  {q:"ケンカ中に\n考えていることは？",a:["自分の言い分を伝えたい","関係を悪化させたくない"],axis:2,map:[0,1]},
+  {q:"相手が怒っているときは？",a:["理由を聞く","落ち着くまで待つ"],axis:0,map:[0,1]},
+  {q:"自分が怒ると？",a:["表情や態度に出る","内側にため込む"],axis:0,map:[0,1]},
+  {q:"話し合いで\n重視するのは？",a:["正しさ","納得感"],axis:1,map:[1,0]},
+  {q:"謝るタイミングは？",a:["早め","よく考えてから"],axis:3,map:[0,1]},
+  {q:"ケンカ後に\n気になるのは？",a:["問題が解決したか","相手との関係が戻るか"],axis:2,map:[0,1]},
+  {q:"相手の主張が間違っていると\n思ったら？",a:["指摘する","まず意図を聞く"],axis:0,map:[0,1]},
+  {q:"感情的な言い合いに\nなったら？",a:["そのまま話す","一旦中断する"],axis:3,map:[0,1]},
+  {q:"過去のケンカについては？",a:["終わったら切り替える","しばらく覚えている"],axis:3,map:[0,1]},
+  {q:"第三者がいたら？",a:["仲裁してほしい","当事者だけで解決したい"],axis:0,map:[0,1]},
+  {q:"ケンカの理想形は？",a:["お互い本音を言うこと","円満に終わること"],axis:2,map:[0,1]}
+];
+
+const AXIS_KEYS=[["向き合う","避ける"],["感情","論理"],["自分の主張","関係性"],["即行動","時間を置く"]];
+const AXIS_NAMES=["Conflict approach","Judgment","Priority","Timing"];
+const AXIS_LABELS=["向き合い方","判断基準","優先するもの","タイミング"];
+const AXIS_ICONS=["⚡","💡","🎯","⏱"];
+const AXIS_ICON_BG=["#EEECfB","#FFF9E6","#FFEDE8","#E8F8EE"];
+const AXIS_BAR_COLORS=["#7F77DD","#EF9F27","#E24B4A","#1D9E75"];
+
+let cq=0, scores=[[0,0],[0,0],[0,0],[0,0]], resultKey="";
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  if (id === 'list') renderList();
 }
 
-// ─── API Key ─────────────────────────────
-function saveKey() {
-  const inputIdMap = { gemini: 'geminiKeyInput', openai: 'openaiKeyInput', ollama: 'ollamaKeyInput' };
-  const inputId = inputIdMap[currentProvider] || 'geminiKeyInput';
-  const val = document.getElementById(inputId).value.trim();
-  const err = document.getElementById('setupError');
-  err.style.display = 'none';
-
-  if (currentProvider === 'gemini' && (!val.startsWith('AIza') || val.length < 20)) {
-    err.textContent = 'GeminiのAPIキーは「AIza」から始まります。確認してください。';
-    err.style.display = 'block'; return;
-  }
-  if (currentProvider === 'openai' && (!val.startsWith('sk-') || val.length < 20)) {
-    err.textContent = 'OpenAIのAPIキーは「sk-」から始まります。確認してください。';
-    err.style.display = 'block'; return;
-  }
-  if (currentProvider === 'ollama' && val.length < 1) {
-    err.textContent = 'Ollama CloudのAPIキーを入力してください。';
-    err.style.display = 'block'; return;
-  }
-
-  apiKey = val;
-  sessionStorage.setItem('cro_provider', currentProvider);
-  sessionStorage.setItem('cro_key', val);
-
-  const labelMap = { gemini: '🔵 Gemini', openai: '🟢 ChatGPT', ollama: '🟠 Ollama Cloud' };
-  const headerMap = { gemini: 'Gemini', openai: 'ChatGPT', ollama: 'Ollama Cloud' };
-  const label = labelMap[currentProvider] || 'AI';
-  document.getElementById('apiKeyLabel').textContent = label + ' · ' + val.slice(0, 8) + '****';
-  document.getElementById('headerSub').textContent = 'Powered by ' + (headerMap[currentProvider] || 'AI');
-  document.getElementById('setupScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'block';
+function startApp() {
+  cq=0; scores=[[0,0],[0,0],[0,0],[0,0]];
+  showScreen('quiz');
+  renderQ();
 }
 
-function changeApiKey() {
-  apiKey = '';
-  sessionStorage.removeItem('cro_provider');
-  sessionStorage.removeItem('cro_key');
-  document.getElementById('setupScreen').style.display = 'block';
-  document.getElementById('mainApp').style.display = 'none';
+function renderQ() {
+  const q = QUESTIONS[cq];
+  const pct = Math.round((cq/16)*100);
+  document.getElementById('quiz-area').innerHTML = `
+    <div class="prog-row">
+      <span class="prog-q-label">Q${cq+1} / 16</span>
+      <span class="prog-pct-label">約${pct}% 完了</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div class="q-main">
+      <div class="q-number">Q${cq+1}.</div>
+      <div class="q-text">${q.q.replace('\n','<br>')}</div>
+      <div class="q-hint">直感で今のあなたに最も近いものを選んでください。</div>
+      <div class="opt-list">
+        <button class="opt-btn" onclick="answer(0)">
+          <span class="opt-letter a">A</span>
+          <span class="opt-text">${q.a[0]}</span>
+        </button>
+        <button class="opt-btn" onclick="answer(1)">
+          <span class="opt-letter b">B</span>
+          <span class="opt-text">${q.a[1]}</span>
+        </button>
+      </div>
+    </div>
+    <div class="quiz-footer">回答は後から変更できません。自分の心に素直に。</div>
+  `;
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  const savedProvider = sessionStorage.getItem('cro_provider');
-  const savedKey = sessionStorage.getItem('cro_key');
-  if (savedProvider && savedKey) {
-    currentProvider = savedProvider;
-    apiKey = savedKey;
-    const labelMap2 = { gemini: '🔵 Gemini', openai: '🟢 ChatGPT', ollama: '🟠 Ollama Cloud' };
-    const headerMap2 = { gemini: 'Gemini', openai: 'ChatGPT', ollama: 'Ollama Cloud' };
-    document.getElementById('apiKeyLabel').textContent = (labelMap2[currentProvider] || 'AI') + ' · ' + savedKey.slice(0, 8) + '****';
-    document.getElementById('headerSub').textContent = 'Powered by ' + (headerMap2[currentProvider] || 'AI');
-    document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-  }
-  ['geminiKeyInput','openaiKeyInput','ollamaKeyInput'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
-  });
-});
-
-// ─── File Handlers ────────────────────────
-function handleDragOver(e, z) { e.preventDefault(); document.getElementById(z).classList.add('dragging'); }
-function handleDragLeave(e, z) { document.getElementById(z).classList.remove('dragging'); }
-function handleDrop(e, z, inputId) {
-  e.preventDefault();
-  document.getElementById(z).classList.remove('dragging');
-  const file = e.dataTransfer.files[0]; if (!file) return;
-  const input = document.getElementById(inputId);
-  const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
-  input.dispatchEvent(new Event('change'));
-}
-function handleCSV(input) {
-  const file = input.files[0]; if (!file) return;
-  document.getElementById('csvZone').classList.add('has-file');
-  document.getElementById('csvName').textContent = '✓ ' + file.name;
-  const r = new FileReader();
-  r.onload = e => { csvData = e.target.result.slice(0, 8000); };
-  r.readAsText(file, 'UTF-8');
-}
-function handleImage(input, type) {
-  const file = input.files[0]; if (!file) return;
-  document.getElementById(type + 'Zone').classList.add('has-file');
-  document.getElementById(type + 'Name').textContent = '✓ ' + file.name;
-  const prev = document.getElementById(type + 'Preview');
-  prev.style.display = 'block'; prev.src = URL.createObjectURL(file);
-  const r = new FileReader();
-  r.onload = e => {
-    const b64 = e.target.result.split(',')[1];
-    if (type === 'heat') { heatBase64 = b64; heatMime = file.type; }
-    else { ssBase64 = b64; ssMime = file.type; }
-  };
-  r.readAsDataURL(file);
+function answer(idx) {
+  const q = QUESTIONS[cq];
+  scores[q.axis][q.map[idx]]++;
+  cq++;
+  if (cq >= 16) showResult();
+  else renderQ();
 }
 
-// ─── System Prompt ────────────────────────
-const SYSTEM_PROMPT = `あなたはWebサイトのCRO（コンバージョン率最適化）の世界的な専門家です。
-提供されたデータ（GA4数値・ヒートマップ画像・スクリーンショット・ページテキスト）を徹底的に分析し、
-必ず以下の5セクションを【】マークで区切って詳細に日本語で回答してください。
-
-分析の重要ルール：
-- 画像が提供された場合は必ず詳しく視覚的に分析すること（色の分布・クリック集中箇所・スクロール到達率・ファーストビューの状態など）
-- 数値データがある場合は必ず根拠として引用すること
-- 各項目は必ず3文以上で具体的に説明すること
-- 抽象的な表現は禁止。「改善する」ではなく「○○を△△に変更する」レベルで記述
-- 問題点は最低5個以上、改善提案は最低5個以上挙げること
-
-【サマリー】
-サイト・ページの概要、現状のCV構造、主な課題を5〜8文で詳しく説明。
-数値がある場合はセッション数・直帰率・CV率などを具体的に言及すること。
-
-【問題点】
-根拠データとともに問題点を優先度高/中/低で最低5個列挙。
-各問題は以下の形式で記述：
-●優先度高：【問題タイトル】
-　現象：（何が起きているか）
-　根拠：（GA4数値や画像から読み取れる証拠）
-　影響：（これによりCVにどう影響しているか）
-
-【改善提案】
-各問題に対応する具体的な改善案を優先度高/中/低で最低5個列挙。
-各提案は以下の形式で記述：
-▶優先度高：【改善タイトル】
-　実施内容：（具体的に何をどう変えるか）
-　期待効果：（改善後にどのような変化が見込まれるか）
-　実施難易度：（低／中／高）
-
-【ABテスト案】
-検証すべきABテストを最低4個、以下の形式で列挙：
-# テスト番号
-・テスト箇所：
-・A案（現状）：
-・B案（改善案）：
-・測定指標：
-・期待効果：
-
-【次のアクション】
-＜今週中に実施すること＞（番号付きリストで5個以上）
-＜来週以降の施策＞（番号付きリストで5個以上）`;
-
-// ─── Analysis ─────────────────────────────
-async function runAnalysis() {
-  const url = document.getElementById('pageUrl').value.trim();
-  const pageText = document.getElementById('pageText').value.trim();
-  const goal = document.getElementById('goalText').value.trim();
-  const errEl = document.getElementById('analyzeError');
-  errEl.style.display = 'none';
-
-  // Ollamaは画像非対応の警告
-  if (currentProvider === 'ollama' && (heatBase64 || ssBase64)) {
-    errEl.textContent = '⚠️ Ollama Cloudは画像分析に対応していません。GA4データ・URL・テキストのみで分析します。';
-    errEl.style.display = 'block';
-    // 画像データをクリア（送らない）
-    heatBase64 = ''; ssBase64 = '';
-  }
-  // 画像がまだ読み込み中かチェック
-  const heatInput = document.getElementById('heatFile');
-  const ssInput = document.getElementById('ssFile');
-  if ((heatInput.files[0] && !heatBase64) || (ssInput.files[0] && !ssBase64)) {
-    errEl.textContent = '画像をまだ読み込み中です。少し待ってから再度押してください。';
-    errEl.style.display = 'block'; return;
-  }
-  if (!csvData && !heatBase64 && !ssBase64 && !url && !pageText) {
-    errEl.textContent = '少なくとも1つのデータを入力してください。';
-    errEl.style.display = 'block'; return;
-  }
-
-  document.getElementById('analyzeBtn').disabled = true;
-  document.getElementById('loadingBlock').style.display = 'block';
-  document.getElementById('resultsBlock').style.display = 'none';
-
-  const msgs = ['データを読み込み中…','GA4データを解析中…','画像を視覚的に分析中…','問題点を抽出中…','改善提案を生成中…'];
-  let mi = 0;
-  const msgEl = document.getElementById('loadingText');
-  const timer = setInterval(() => { mi = (mi+1) % msgs.length; msgEl.textContent = msgs[mi]; }, 2500);
-
-  let userText = '';
-  if (csvData) userText += `【GA4データ（CSV）】\n${csvData}\n\n`;
-  if (url) userText += `【ページURL】${url}\n\n`;
-  if (pageText) userText += `【ページ本文・HTML】\n${pageText.slice(0,4000)}\n\n`;
-  if (goal) userText += `【分析の目的・気になること】\n${goal}\n\n`;
-  if (!heatBase64 && !ssBase64) userText += '※画像データなし。テキストデータのみで分析してください。\n';
-
-  try {
-    let resultText = '';
-    if (currentProvider === 'gemini') {
-      resultText = await callGemini(userText);
-    } else if (currentProvider === 'openai') {
-      resultText = await callOpenAI(userText);
-    } else {
-      resultText = await callOllama(userText);
-    }
-    allResultText = resultText;
-    displayResults(resultText);
-  } catch(e) {
-    errEl.textContent = 'エラー：' + e.message;
-    errEl.style.display = 'block';
-  } finally {
-    clearInterval(timer);
-    document.getElementById('loadingBlock').style.display = 'none';
-    document.getElementById('analyzeBtn').disabled = false;
-  }
-}
-
-// ─── Gemini API ───────────────────────────
-async function callGemini(userText) {
-  const parts = [{ text: SYSTEM_PROMPT + '\n\n' + userText }];
-  if (heatBase64) {
-    parts.push({ text: '【ヒートマップ画像】以下の画像を分析してください：' });
-    parts.push({ inline_data: { mime_type: heatMime || 'image/jpeg', data: heatBase64 } });
-  }
-  if (ssBase64) {
-    parts.push({ text: '【スクリーンショット】以下の画像を分析してください：' });
-    parts.push({ inline_data: { mime_type: ssMime || 'image/jpeg', data: ssBase64 } });
-  }
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{parts}], generationConfig:{ temperature:0.4, maxOutputTokens:8192 } }) }
-  );
-  if (!res.ok) { const d = await res.json(); throw new Error(d.error?.message || `Gemini APIエラー: ${res.status}`); }
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (!text) throw new Error('Geminiからの応答が空でした。再度お試しください。');
-  return text;
-}
-
-// ─── OpenAI API ───────────────────────────
-async function callOpenAI(userText) {
-  const userContent = [];
-  userContent.push({ type: 'text', text: userText });
-  if (heatBase64) {
-    userContent.push({ type: 'text', text: '【ヒートマップ画像】以下の画像を分析してください：' });
-    userContent.push({ type: 'image_url', image_url: { url: `data:${heatMime || 'image/jpeg'};base64,${heatBase64}` } });
-  }
-  if (ssBase64) {
-    userContent.push({ type: 'text', text: '【スクリーンショット】以下の画像を分析してください：' });
-    userContent.push({ type: 'image_url', image_url: { url: `data:${ssMime || 'image/jpeg'};base64,${ssBase64}` } });
-  }
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent }
-      ],
-      max_tokens: 4096,
-      temperature: 0.4
-    })
-  });
-  if (!res.ok) { const d = await res.json(); throw new Error(d.error?.message || `OpenAI APIエラー: ${res.status}`); }
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content || '';
-  if (!text) throw new Error('ChatGPTからの応答が空でした。再度お試しください。');
-  return text;
-}
-
-// ─── Ollama Cloud API ────────────────────────
-async function callOllama(userText) {
-  const res = await fetch('https://api.ollama.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
-    },
-    body: JSON.stringify({
-      model: 'llama3.2',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userText }
-      ],
-      stream: false
-    })
-  });
-  if (!res.ok) {
-    const d = await res.json().catch(() => ({}));
-    throw new Error(d.error?.message || 'Ollama Cloud APIエラー: ' + res.status + ' - APIキーとエンドポイントを確認してください');
-  }
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content || data.message?.content || '';
-  if (!text) throw new Error('Ollama Cloudからの応答が空でした。再度お試しください。');
-  return text;
-}
-
-// ─── Display ──────────────────────────────
-function extractSection(text, key) {
-  // Try various bracket formats the AI might use
-  const patterns = [
-    new RegExp(`【${key}】([\s\S]*?)(?=【|$)`),
-    new RegExp(`\[${key}\]([\s\S]*?)(?=\[|$)`),
-    new RegExp(`##\s*${key}\s*\n([\s\S]*?)(?=##|$)`),
-    new RegExp(`\*\*${key}\*\*([\s\S]*?)(?=\*\*|$)`),
+function showResult() {
+  const a0 = scores[0][0] >= scores[0][1] ? "向き合う" : "避ける";
+  const a1 = scores[1][0] >= scores[1][1] ? "感情" : "論理";
+  const a2 = scores[2][0] >= scores[2][1] ? "自分" : "関係";
+  const a3 = scores[3][0] >= scores[3][1] ? "即行動" : "時間を置く";
+  resultKey = `${a0}×${a1}×${a2}×${a3}`;
+  const t = TYPES[resultKey];
+  const axisVals = [a0, a1, a2==="自分"?"自分の主張":"関係性", a3];
+  const axisBarWidths = [
+    scores[0][0]>=scores[0][1]?70:30,
+    scores[1][0]>=scores[1][1]?70:30,
+    scores[2][0]>=scores[2][1]?70:30,
+    scores[3][0]>=scores[3][1]?70:30
   ];
-  for (const pattern of patterns) {
-    const m = text.match(pattern);
-    if (m && m[1].trim()) return m[1].trim();
-  }
-  return '';
+
+  showScreen('result');
+
+  document.getElementById('result-area').innerHTML = `
+    <div class="result-hero-bar" style="background:${t.bg}20">
+      <div class="result-eyebrow">あなたのコンフリクト・タイプは...</div>
+      <div class="result-type-name">${t.name}</div>
+      <div class="result-type-code">${t.code}</div>
+      <div class="result-char-img">${t.svg}</div>
+    </div>
+
+    <div class="result-body">
+      <div class="result-quote-card">
+        <div class="result-quote">「${t.tagline}」</div>
+        <div class="result-quote-body">${t.desc}</div>
+      </div>
+
+      <div class="axis-cards">
+        ${axisVals.map((v,i) => `
+        <div class="axis-card">
+          <div class="axis-icon" style="background:${AXIS_ICON_BG[i]}">${AXIS_ICONS[i]}</div>
+          <div class="axis-right">
+            <div class="axis-label-row">
+              <span class="axis-label">${AXIS_NAMES[i]}</span>
+            </div>
+            <div class="axis-value">${v}</div>
+            <div class="axis-sub">${getAxisSub(i, v)}</div>
+            <div class="axis-bar"><div class="axis-bar-fill" style="width:${axisBarWidths[i]}%;background:${AXIS_BAR_COLORS[i]}"></div></div>
+          </div>
+        </div>`).join('')}
+      </div>
+
+      <div class="advice-card">
+        <div class="advice-title">あなたへのアドバイス</div>
+        <ul class="advice-list">
+          ${t.tip.map(tip => `<li>${tip}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-card">
+          <div class="detail-card-head">⭐ 強み</div>
+          <div class="detail-card-body">${t.strength}</div>
+        </div>
+        <div class="detail-card">
+          <div class="detail-card-head">⚠ 注意点</div>
+          <div class="detail-card-body">${t.weakness}</div>
+        </div>
+      </div>
+
+      <div class="compat-row">
+        <div class="compat-card">
+          <div class="compat-badge good">相性が良いタイプ</div>
+          <div class="compat-type-name">${t.match}</div>
+        </div>
+        <div class="compat-card">
+          <div class="compat-badge care">注意すべきタイプ</div>
+          <div class="compat-type-name" style="color:#E65100">${t.care}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="share-btn-main" onclick="openShareMenu()">＜ 結果をシェアする</button>
+      <button class="list-btn" onclick="showScreen('list')">⊞ 全タイプ一覧を見る</button>
+      <button class="retry-btn" onclick="startApp()">もう一度診断する</button>
+    </div>
+    <div style="height:20px"></div>
+  `;
 }
-function displayResults(text) {
-  const summary  = extractSection(text,'サマリー');
-  const issues   = extractSection(text,'問題点');
-  const recs     = extractSection(text,'改善提案');
-  const ab       = extractSection(text,'ABテスト案');
-  const action   = extractSection(text,'次のアクション');
 
-  // If all sections are empty, show the raw response in summary
-  const allEmpty = !summary && !issues && !recs && !ab && !action;
-
-  document.getElementById('summaryContent').textContent = allEmpty ? text : (summary || '（取得できませんでした）');
-  document.getElementById('issuesContent').textContent  = allEmpty ? '' : (issues  || '（取得できませんでした）');
-  document.getElementById('recsContent').textContent    = allEmpty ? '' : (recs    || '（取得できませんでした）');
-  document.getElementById('abContent').textContent      = allEmpty ? '' : (ab      || '（取得できませんでした）');
-  document.getElementById('actionContent').textContent  = allEmpty ? '' : (action  || '（取得できませんでした）');
-
-  if (allEmpty) {
-    document.getElementById('summaryBlock').querySelector('.result-block-title').textContent = '⚠️ セクション分割できませんでした（生のレスポンス）';
-  } else {
-    document.getElementById('summaryBlock').querySelector('.result-block-title').textContent = '📌 サマリー';
-  }
-
-  document.getElementById('resultsBlock').style.display = 'block';
-  document.getElementById('resultsBlock').scrollIntoView({ behavior:'smooth', block:'start' });
+function getAxisSub(i, v) {
+  const subs = {
+    0: { "向き合う":"争いを回避せず、協調を促すスタイルです。", "避ける":"争いを回避し、状況を見守るスタイルです。" },
+    1: { "感情":"ロジックよりも、当事者の気持ちを尊重します。", "論理":"感情より事実を整理して話すスタイルです。" },
+    2: { "自分の主張":"自分の意見をきちんと伝えることを重視。", "関係性":"個人の利益より、場の空気感を大切にします。" },
+    3: { "即行動":"即断即決せず、慎重に状況を見極めます。", "時間を置く":"じっくりと考えてから行動するタイプ。" }
+  };
+  return subs[i][v] || "";
 }
-function copyResults() {
-  navigator.clipboard.writeText(allResultText).then(() => {
-    const btn = document.querySelector('.btn-copy');
-    btn.textContent = '✓ コピー済み';
-    setTimeout(() => btn.textContent = 'コピー', 2000);
+
+function renderList() {
+  const grid = document.getElementById('type-grid-area');
+  if (!grid) return;
+  const entries = Object.entries(TYPES);
+  grid.innerHTML = entries.map(([key, t], i) => `
+    <div class="type-card" onclick="showTypeModal('${key}')">
+      <div class="type-card-avatar">${t.svg}</div>
+      <div class="type-card-code">${String.fromCharCode(65+i)} TYPE</div>
+      <div class="type-card-name">${t.name}</div>
+    </div>
+  `).join('');
+}
+
+function showTypeModal(key) {
+  const t = TYPES[key];
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-handle"></div>
+    <div class="modal-avatar">${t.svg}</div>
+    <div class="modal-code">${t.code}</div>
+    <div class="modal-name">${t.name}</div>
+    <div class="modal-tagline">${t.tagline}</div>
+    <div class="modal-desc">${t.desc}</div>
+    <div class="modal-axes">${t.axes.map(a=>`<span class="modal-axis">${a}</span>`).join('')}</div>
+    <button class="modal-close" onclick="closeModal()">閉じる</button>
+  `;
+  document.getElementById('type-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('type-modal').classList.remove('open');
+}
+
+function openShareMenu() {
+  document.getElementById('share-menu').classList.add('open');
+}
+
+function closeShareMenu() {
+  document.getElementById('share-menu').classList.remove('open');
+}
+
+function shareTwitter() {
+  closeShareMenu();
+  const t = TYPES[resultKey];
+  const text = `【ケンカしたとき診断】\n私のタイプは「${t.name}」(${t.code})でした！\n"${t.tagline}"\n\n#ケンカタイプ診断 #${t.name}`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function copyResult() {
+  closeShareMenu();
+  const t = TYPES[resultKey];
+  const text = `【ケンカしたとき診断】\n私のタイプは「${t.name}」(${t.code})でした！\n"${t.tagline}"\n\n${t.desc}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
   });
-}
-function resetForm() {
-  csvData=''; heatBase64=''; ssBase64=''; heatMime=''; ssMime=''; allResultText='';
-  ['csvZone','heatZone','ssZone'].forEach(id => document.getElementById(id).classList.remove('has-file'));
-  ['csvName','heatName','ssName'].forEach(id => document.getElementById(id).textContent='');
-  ['heatPreview','ssPreview'].forEach(id => { document.getElementById(id).style.display='none'; });
-  ['csvFile','heatFile','ssFile'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('pageUrl').value='';
-  document.getElementById('pageText').value='';
-  document.getElementById('goalText').value='';
-  document.getElementById('resultsBlock').style.display='none';
-  document.getElementById('analyzeError').style.display='none';
-  window.scrollTo({top:0,behavior:'smooth'});
 }
 </script>
 </body>
